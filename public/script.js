@@ -177,7 +177,8 @@ function loadSound(input, tabId) {
     // Replace the empty slot
     const grid = document.getElementById(`grid-${tabId}`);
     const emptySlot = input.parentElement;
-    grid.insertBefore(soundCard, emptySlot);
+    // Replace the old empty slot with the newly created sound card
+    emptySlot.replaceWith(soundCard);
     
     // Create new empty slot
     const newEmptySlot = document.createElement('div');
