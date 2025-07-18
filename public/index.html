@@ -32,6 +32,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 20px;
         }
 
         .app-title {
@@ -42,7 +43,71 @@
 
         .global-controls {
             display: flex;
-            gap: 10px;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .master-volume {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #444;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #555;
+        }
+
+        .master-volume label {
+            font-size: 12px;
+            color: #ccc;
+            white-space: nowrap;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 4px;
+            background: #555;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+            background: #00cc6a;
+            transform: scale(1.1);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .volume-slider::-moz-range-thumb:hover {
+            background: #00cc6a;
+            transform: scale(1.1);
+        }
+
+        .volume-value {
+            font-size: 11px;
+            color: #00ff88;
+            min-width: 30px;
+            text-align: center;
         }
 
         .btn {
@@ -318,6 +383,66 @@
             transition: width 0.1s ease;
         }
 
+        .sound-volume {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 4px 0;
+        }
+
+        .sound-volume label {
+            font-size: 10px;
+            color: #ccc;
+            min-width: 20px;
+        }
+
+        .sound-volume-slider {
+            flex: 1;
+            height: 3px;
+            background: #555;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .sound-volume-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sound-volume-slider::-webkit-slider-thumb:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+
+        .sound-volume-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .sound-volume-slider::-moz-range-thumb:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+
+        .sound-volume-value {
+            font-size: 9px;
+            color: #007bff;
+            min-width: 25px;
+            text-align: center;
+        }
+
         .empty-slot {
             background: linear-gradient(145deg, #2a2a2a 0%, #1e1e1e 100%);
             border: 2px dashed #555;
@@ -416,6 +541,13 @@
         <div class="header">
             <div class="app-title">🎵 Professional Soundboard</div>
             <div class="global-controls">
+                <div class="master-volume">
+                    <label>Master</label>
+                    <input type="range" class="volume-slider" id="masterVolume" 
+                           min="0" max="100" value="100" 
+                           oninput="updateMasterVolume(this.value)">
+                    <span class="volume-value" id="masterVolumeValue">100%</span>
+                </div>
                 <button class="btn" onclick="stopAllSounds()">Stop All</button>
                 <button class="btn danger" onclick="clearCurrentPanel()">Clear Panel</button>
             </div>
@@ -464,6 +596,7 @@
         let audioElements = new Map();
         let tabData = new Map();
         let renamingTabId = null;
+        let masterVolume = 1.0;
 
         // Initialize first tab
         tabData.set(0, {
@@ -584,9 +717,11 @@
             // Stop all sounds in this tab
             const tab = tabData.get(tabId);
             if (tab) {
-                tab.sounds.forEach((sound, id) => {
-                    cleanupSound(sound);
-                    audioElements.delete(id);
+                tab.sounds.forEach(sound => {
+                    if (sound.audio) {
+                        sound.audio.pause();
+                        sound.audio.src = '';
+                    }
                 });
             }
             
@@ -652,9 +787,9 @@
             tab.sounds.set(soundId, {
                 name: file.name,
                 audio: audio,
-                url: url,
                 isLooping: false,
-                element: soundCard
+                element: soundCard,
+                volume: 1.0  // Individual volume (0.0 to 1.0)
             });
             
             audioElements.set(soundId, audio);
@@ -680,6 +815,13 @@
                     <button class="sound-btn stop" onclick="stopSound('${soundId}', ${tabId})">⏹ Stop</button>
                     <button class="sound-btn loop-toggle" onclick="toggleLoop('${soundId}', ${tabId})" id="loop-${soundId}">🔁 Loop</button>
                 </div>
+                <div class="sound-volume">
+                    <label>Vol</label>
+                    <input type="range" class="sound-volume-slider" id="volume-${soundId}" 
+                           min="0" max="100" value="100" 
+                           oninput="updateSoundVolume('${soundId}', ${tabId}, this.value)">
+                    <span class="sound-volume-value" id="volumeValue-${soundId}">100%</span>
+                </div>
                 <div class="time-controls">
                     <button class="time-btn" onclick="skipBack('${soundId}', 5)">-5s</button>
                     <button class="time-btn" onclick="skipBack('${soundId}', 15)">-15s</button>
@@ -697,6 +839,9 @@
             const card = document.querySelector(`[data-sound-id="${soundId}"]`);
             const status = document.getElementById(`status-${soundId}`);
             const progress = document.getElementById(`progress-${soundId}`);
+            
+            // Set initial volume
+            updateAudioVolume(soundId);
             
             audio.addEventListener('play', () => {
                 card.classList.remove('paused');
@@ -771,23 +916,15 @@
             }
         }
 
-        function cleanupSound(sound) {
-            if (sound.audio) {
-                sound.audio.pause();
-                sound.audio.src = '';
-            }
-            if (sound.url) {
-                URL.revokeObjectURL(sound.url);
-            }
-        }
-
         function removeSound(soundId, tabId) {
             const tab = tabData.get(tabId);
             const sound = tab.sounds.get(soundId);
-
+            
             if (sound) {
-                cleanupSound(sound);
-
+                // Stop and cleanup audio
+                sound.audio.pause();
+                sound.audio.src = '';
+                
                 // Remove from DOM and data structures
                 sound.element.remove();
                 tab.sounds.delete(soundId);
@@ -807,16 +944,22 @@
             if (confirm('Are you sure you want to clear all sounds from this panel?')) {
                 const tab = tabData.get(currentTab);
                 
-
                 // Stop and cleanup all sounds
-                tab.sounds.forEach((sound, id) => {
-                    cleanupSound(sound);
+                tab.sounds.forEach(sound => {
+                    sound.audio.pause();
+                    sound.audio.src = '';
                     sound.element.remove();
-                    audioElements.delete(id);
                 });
-
+                
                 // Clear data structures
                 tab.sounds.clear();
+                
+                // Remove all audio elements for this tab
+                audioElements.forEach((audio, soundId) => {
+                    if (tab.sounds.has(soundId)) {
+                        audioElements.delete(soundId);
+                    }
+                });
                 
                 // Reset grid with empty slot
                 const grid = document.getElementById(`grid-${currentTab}`);
@@ -829,6 +972,45 @@
                         </div>
                     </div>
                 `;
+            }
+        }
+
+        // Volume control functions
+        function updateMasterVolume(value) {
+            masterVolume = value / 100;
+            document.getElementById('masterVolumeValue').textContent = value + '%';
+            
+            // Update all currently loaded audio elements
+            audioElements.forEach((audio, soundId) => {
+                updateAudioVolume(soundId);
+            });
+        }
+
+        function updateSoundVolume(soundId, tabId, value) {
+            const tab = tabData.get(tabId);
+            const sound = tab.sounds.get(soundId);
+            
+            if (sound) {
+                sound.volume = value / 100;
+                document.getElementById(`volumeValue-${soundId}`).textContent = value + '%';
+                updateAudioVolume(soundId);
+            }
+        }
+
+        function updateAudioVolume(soundId) {
+            const audio = audioElements.get(soundId);
+            if (audio) {
+                // Find the sound data to get individual volume
+                let soundVolume = 1.0;
+                for (const tab of tabData.values()) {
+                    if (tab.sounds.has(soundId)) {
+                        soundVolume = tab.sounds.get(soundId).volume;
+                        break;
+                    }
+                }
+                
+                // Set final volume as master * individual
+                audio.volume = masterVolume * soundVolume;
             }
         }
 
