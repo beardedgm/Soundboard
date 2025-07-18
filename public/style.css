@@ -52,3 +52,19 @@ body {
     background: #008000;
     color: #fff;
 }
+
+.progress-container {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.progress-bar {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.time-label {
+    min-width: 60px;
+    text-align: right;
+}
