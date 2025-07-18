@@ -584,11 +584,9 @@
             // Stop all sounds in this tab
             const tab = tabData.get(tabId);
             if (tab) {
-                tab.sounds.forEach(sound => {
-                    if (sound.audio) {
-                        sound.audio.pause();
-                        sound.audio.src = '';
-                    }
+                tab.sounds.forEach((sound, id) => {
+                    cleanupSound(sound);
+                    audioElements.delete(id);
                 });
             }
             
@@ -654,6 +652,7 @@
             tab.sounds.set(soundId, {
                 name: file.name,
                 audio: audio,
+                url: url,
                 isLooping: false,
                 element: soundCard
             });
@@ -772,15 +771,23 @@
             }
         }
 
+        function cleanupSound(sound) {
+            if (sound.audio) {
+                sound.audio.pause();
+                sound.audio.src = '';
+            }
+            if (sound.url) {
+                URL.revokeObjectURL(sound.url);
+            }
+        }
+
         function removeSound(soundId, tabId) {
             const tab = tabData.get(tabId);
             const sound = tab.sounds.get(soundId);
-            
+
             if (sound) {
-                // Stop and cleanup audio
-                sound.audio.pause();
-                sound.audio.src = '';
-                
+                cleanupSound(sound);
+
                 // Remove from DOM and data structures
                 sound.element.remove();
                 tab.sounds.delete(soundId);
@@ -800,22 +807,16 @@
             if (confirm('Are you sure you want to clear all sounds from this panel?')) {
                 const tab = tabData.get(currentTab);
                 
+
                 // Stop and cleanup all sounds
-                tab.sounds.forEach(sound => {
-                    sound.audio.pause();
-                    sound.audio.src = '';
+                tab.sounds.forEach((sound, id) => {
+                    cleanupSound(sound);
                     sound.element.remove();
+                    audioElements.delete(id);
                 });
-                
+
                 // Clear data structures
                 tab.sounds.clear();
-                
-                // Remove all audio elements for this tab
-                audioElements.forEach((audio, soundId) => {
-                    if (tab.sounds.has(soundId)) {
-                        audioElements.delete(soundId);
-                    }
-                });
                 
                 // Reset grid with empty slot
                 const grid = document.getElementById(`grid-${currentTab}`);
