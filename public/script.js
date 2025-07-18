@@ -82,10 +82,11 @@ function createTrack(panel, file) {
     controls.appendChild(playBtn);
 
     const loopBtn = document.createElement('button');
-    loopBtn.textContent = 'Loop';
+    loopBtn.textContent = 'Loop: Off';
     loopBtn.addEventListener('click', () => {
         audio.loop = !audio.loop;
         loopBtn.classList.toggle('active', audio.loop);
+        loopBtn.textContent = audio.loop ? 'Loop: On' : 'Loop: Off';
     });
     controls.appendChild(loopBtn);
 
