@@ -13,4 +13,5 @@ Open `public/index.html` in any modern web browser. No additional setup is requi
 - Play several tracks at once and pause them individually.
 - Loop a track or jump back 5, 15, or 20 seconds.
 - Visual indicator showing whether a track is playing, paused, or stopped.
+- Loop button now displays "Loop: On" when looping and is highlighted.
 
