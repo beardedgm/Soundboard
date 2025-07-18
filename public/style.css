@@ -214,7 +214,11 @@ body {
 
 .sound-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    /*
+     * Increase the minimum column width so that card elements such as the
+     * volume slider fit comfortably without bleeding into the padding.
+     */
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 15px;
     max-width: 100%;
 }
