@@ -266,6 +266,17 @@ body {
     white-space: nowrap;
 }
 
+.sound-title-input {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: #555;
+    border: 1px solid #777;
+    border-radius: 4px;
+    width: 100%;
+    padding: 2px 4px;
+}
+
 .sound-status {
     width: 10px;
     height: 10px;
@@ -490,8 +501,32 @@ body {
     transition: opacity 0.2s ease;
 }
 
+.rename-sound {
+    position: absolute;
+    top: 5px;
+    right: 30px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(0, 123, 255, 0.8);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
 .sound-card:hover .remove-sound {
     opacity: 1;
+}
+
+.sound-card:hover .rename-sound {
+    opacity: 1;
+}
+
+.rename-sound:hover {
+    background: #007bff;
 }
 
 .remove-sound:hover {
