@@ -6,6 +6,7 @@ let audioElements = new Map();
 let tabData = new Map();
 let renamingTabId = null;
 let masterVolume = 1.0;
+let draggedCard = null;
 const LOCAL_STORAGE_KEY = 'soundboardState';
 
 // Initialize first tab
@@ -97,17 +98,11 @@ function createTabElement(id, name) {
     const newPanel = document.createElement('div');
     newPanel.className = 'panel-content hidden';
     newPanel.id = `panel-${id}`;
-    newPanel.innerHTML = `
-        <div class="sound-grid" id="grid-${id}">
-            <div class="empty-slot">
-                <input type="file" accept=".mp3,.wav" onchange="loadSound(this, ${id})">
-                <div class="empty-text">
-                    <strong>Drop or Click</strong>
-                    Add MP3/WAV file
-                </div>
-            </div>
-        </div>
-    `;
+    const grid = document.createElement('div');
+    grid.className = 'sound-grid';
+    grid.id = `grid-${id}`;
+    grid.appendChild(createEmptySlot(id));
+    newPanel.appendChild(grid);
     mainContent.appendChild(newPanel);
 
     tabData.set(id, {
@@ -188,15 +183,7 @@ function loadSound(input, tabId) {
         emptySlot.replaceWith(soundCard);
 
         // Create new empty slot
-        const newEmptySlot = document.createElement('div');
-        newEmptySlot.className = 'empty-slot';
-        newEmptySlot.innerHTML = `
-            <input type="file" accept=".mp3,.wav" onchange="loadSound(this, ${tabId})">
-            <div class="empty-text">
-                <strong>Drop or Click</strong>
-                Add MP3/WAV file
-            </div>
-        `;
+        const newEmptySlot = createEmptySlot(tabId);
         grid.appendChild(newEmptySlot);
 
         const tab = tabData.get(tabId);
@@ -221,6 +208,7 @@ function createSoundCard(soundId, name, audio, tabId) {
     const card = document.createElement('div');
     card.className = 'sound-card';
     card.dataset.soundId = soundId;
+    card.dataset.tabId = tabId;
 
     card.innerHTML = `
         <button class="remove-sound" onclick="removeSound('${soundId}', ${tabId})">×</button>
@@ -254,7 +242,69 @@ function createSoundCard(soundId, name, audio, tabId) {
     const titleEl = card.querySelector('.sound-title');
     titleEl.ondblclick = () => startRenameSound(soundId, tabId);
 
+    setupDragAndDrop(card);
     return card;
+}
+
+function setupDragAndDrop(card) {
+    card.draggable = true;
+    card.addEventListener('dragstart', (e) => {
+        draggedCard = card;
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragover', (e) => e.preventDefault());
+    card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!draggedCard || draggedCard === card) return;
+        const grid = card.parentElement;
+        grid.insertBefore(draggedCard, card);
+        updateSoundOrder(grid);
+        saveState();
+    });
+    card.addEventListener('dragend', () => {
+        draggedCard = null;
+    });
+}
+
+function setupEmptySlotDrag(slot) {
+    slot.addEventListener('dragover', (e) => e.preventDefault());
+    slot.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (draggedCard) {
+            const grid = slot.parentElement;
+            grid.insertBefore(draggedCard, slot);
+            updateSoundOrder(grid);
+            saveState();
+        }
+    });
+}
+
+function createEmptySlot(tabId) {
+    const emptySlot = document.createElement('div');
+    emptySlot.className = 'empty-slot';
+    emptySlot.innerHTML = `
+        <input type="file" accept=".mp3,.wav" onchange="loadSound(this, ${tabId})">
+        <div class="empty-text">
+            <strong>Drop or Click</strong>
+            Add MP3/WAV file
+        </div>
+    `;
+    setupEmptySlotDrag(emptySlot);
+    return emptySlot;
+}
+
+function updateSoundOrder(grid) {
+    const tabId = parseInt(grid.id.split('-')[1]);
+    const tab = tabData.get(tabId);
+    const newMap = new Map();
+    grid.querySelectorAll('.sound-card').forEach(card => {
+        const id = card.dataset.soundId;
+        const sound = tab.sounds.get(id);
+        if (sound) {
+            newMap.set(id, sound);
+        }
+    });
+    tab.sounds = newMap;
 }
 
 function setupAudioEvents(audio, soundId, tabId) {
@@ -432,15 +482,8 @@ function clearCurrentPanel() {
         
         // Reset grid with empty slot
         const grid = document.getElementById(`grid-${currentTab}`);
-        grid.innerHTML = `
-            <div class="empty-slot">
-                <input type="file" accept=".mp3,.wav" onchange="loadSound(this, ${currentTab})">
-                <div class="empty-text">
-                    <strong>Drop or Click</strong>
-                    Add MP3/WAV file
-                </div>
-            </div>
-        `;
+        grid.innerHTML = '';
+        grid.appendChild(createEmptySlot(currentTab));
         saveState();
     }
 }
@@ -561,15 +604,7 @@ function loadState() {
                 updateAudioVolume(s.id);
             });
 
-            const emptySlot = document.createElement('div');
-            emptySlot.className = 'empty-slot';
-            emptySlot.innerHTML = `
-                <input type="file" accept=".mp3,.wav" onchange="loadSound(this, ${tab.id})">
-                <div class="empty-text">
-                    <strong>Drop or Click</strong>
-                    Add MP3/WAV file
-                </div>
-            `;
+            const emptySlot = createEmptySlot(tab.id);
             grid.appendChild(emptySlot);
         });
 
