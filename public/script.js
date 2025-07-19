@@ -9,6 +9,18 @@ let masterVolume = 1.0;
 let draggedCard = null;
 const LOCAL_STORAGE_KEY = 'soundboardState';
 
+function dataURLToBlob(url) {
+    const arr = url.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+}
+
 // Initialize first tab
 tabData.set(0, {
     name: 'Main Sounds',
@@ -167,12 +179,11 @@ function loadSound(input, tabId) {
     const file = input.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-        const dataUrl = reader.result;
+    const soundId = `sound-${soundCounter++}`;
 
-        const soundId = `sound-${soundCounter++}`;
-        const audio = new Audio(dataUrl);
+    storage.put(soundId, file).then(() => {
+        const objectUrl = URL.createObjectURL(file);
+        const audio = new Audio(objectUrl);
 
         // Create sound card
         const soundCard = createSoundCard(soundId, file.name, audio, tabId);
@@ -193,15 +204,14 @@ function loadSound(input, tabId) {
             isLooping: false,
             element: soundCard,
             volume: 1.0,
-            dataUrl: dataUrl
+            fileKey: soundId
         });
 
         audioElements.set(soundId, audio);
 
         setupAudioEvents(audio, soundId, tabId);
         saveState();
-    };
-    reader.readAsDataURL(file);
+    });
 }
 
 function createSoundCard(soundId, name, audio, tabId) {
@@ -437,12 +447,15 @@ function startRenameSound(soundId, tabId) {
 function removeSound(soundId, tabId) {
     const tab = tabData.get(tabId);
     const sound = tab.sounds.get(soundId);
-    
+
     if (sound) {
         // Stop and cleanup audio
         sound.audio.pause();
         sound.audio.src = '';
-        
+        if (sound.fileKey) {
+            storage.remove(sound.fileKey);
+        }
+
         // Remove from DOM and data structures
         sound.element.remove();
         tab.sounds.delete(soundId);
@@ -467,6 +480,9 @@ function clearCurrentPanel() {
         tab.sounds.forEach(sound => {
             sound.audio.pause();
             sound.audio.src = '';
+            if (sound.fileKey) {
+                storage.remove(sound.fileKey);
+            }
             sound.element.remove();
         });
         
@@ -544,7 +560,7 @@ function saveState() {
             tabInfo.sounds.push({
                 id: sid,
                 name: sound.name,
-                dataUrl: sound.dataUrl,
+                fileKey: sound.fileKey,
                 volume: sound.volume,
                 isLooping: sound.isLooping
             });
@@ -555,7 +571,7 @@ function saveState() {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
 }
 
-function loadState() {
+async function loadState() {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!saved) return;
 
@@ -576,13 +592,25 @@ function loadState() {
         tabData.clear();
         audioElements.clear();
 
-        state.tabs.forEach(tab => {
+        let migrated = false;
+        for (const tab of state.tabs) {
             createTabElement(tab.id, tab.name);
             const grid = document.getElementById(`grid-${tab.id}`);
             grid.innerHTML = '';
 
-            tab.sounds.forEach(s => {
-                const audio = new Audio(s.dataUrl);
+            for (const s of tab.sounds) {
+                if (s.dataUrl && !s.fileKey) {
+                    const blob = dataURLToBlob(s.dataUrl);
+                    await storage.put(s.id, blob);
+                    s.fileKey = s.id;
+                    delete s.dataUrl;
+                    migrated = true;
+                }
+
+                const blob = await storage.get(s.fileKey);
+                if (!blob) continue;
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
                 audio.loop = s.isLooping;
                 const card = createSoundCard(s.id, s.name, audio, tab.id);
                 grid.appendChild(card);
@@ -593,7 +621,7 @@ function loadState() {
                     isLooping: s.isLooping,
                     element: card,
                     volume: s.volume,
-                    dataUrl: s.dataUrl
+                    fileKey: s.fileKey
                 });
 
                 audioElements.set(s.id, audio);
@@ -602,11 +630,15 @@ function loadState() {
                 document.getElementById(`volume-${s.id}`).value = Math.round(s.volume * 100);
                 document.getElementById(`volumeValue-${s.id}`).textContent = Math.round(s.volume * 100) + '%';
                 updateAudioVolume(s.id);
-            });
+            }
 
             const emptySlot = createEmptySlot(tab.id);
             grid.appendChild(emptySlot);
-        });
+        }
+
+        if (migrated) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+        }
 
         switchToTab(currentTab);
     } catch (e) {
