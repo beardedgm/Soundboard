@@ -20,6 +20,10 @@
                 </div>
                 <button class="btn" onclick="stopAllSounds()">Stop All</button>
                 <button class="btn danger" onclick="clearCurrentPanel()">Clear Panel</button>
+                <button class="btn" onclick="openLibrary()">Library</button>
+                <button class="btn" onclick="exportBoard()">Export</button>
+                <button class="btn" onclick="triggerImport()">Import</button>
+                <input type="file" id="importInput" accept=".json" class="hidden" onchange="handleImportFile(this)">
             </div>
         </div>
 
@@ -35,10 +39,18 @@
             <div class="panel-content" id="panel-0">
                 <div class="sound-grid" id="grid-0">
                     <div class="empty-slot">
-                        <input type="file" accept=".mp3,.wav" onchange="loadSound(this, 0)">
+                        <input type="file" accept=".mp3,.wav" onchange="loadSound(this, 0, false)">
                         <div class="empty-text">
                             <strong>Drop or Click</strong>
                             Add MP3/WAV file
+                        </div>
+                        <div class="file-options">
+                            <button class="save-btn" onclick="document.querySelector('#grid-0 .empty-slot input[type=file]').click()">💾 Save to Library</button>
+                            <button class="temp-btn" onclick="loadTemporaryFile(0)">⚡ Quick Play</button>
+                        </div>
+                        <div class="url-options">
+                            <button class="url-btn" onclick="promptLoadFromUrl(0, false)">🌐 URL (Save)</button>
+                            <button class="url-btn temp" onclick="promptLoadFromUrl(0, true)">🌐 URL (Temp)</button>
                         </div>
                     </div>
                 </div>
@@ -58,7 +70,20 @@
         </div>
     </div>
 
-    <script src="storage.js"></script>
+    <!-- Sound Library Modal -->
+    <div id="libraryModal" class="modal hidden">
+        <div class="modal-content library">
+            <h3>Sound Library</h3>
+            <div id="libraryList" class="library-list"></div>
+            <div class="library-actions">
+                <input type="file" id="libraryFileInput" accept=".mp3,.wav">
+                <button class="btn primary" onclick="libraryAddFile()">Add File</button>
+                <button class="btn" onclick="closeLibrary()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
     <script src="script.js"></script>
 </body>
 </html>
