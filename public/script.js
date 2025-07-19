@@ -252,6 +252,19 @@ function createSoundCard(soundId, name, audio, tabId) {
     const titleEl = card.querySelector('.sound-title');
     titleEl.ondblclick = () => startRenameSound(soundId, tabId);
 
+    // Prevent dragging the card when interacting with the volume slider
+    const volumeSlider = card.querySelector(`#volume-${soundId}`);
+    if (volumeSlider) {
+        volumeSlider.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            card.draggable = false;
+        });
+        const enableDrag = () => { card.draggable = true; };
+        volumeSlider.addEventListener('pointerup', enableDrag);
+        volumeSlider.addEventListener('pointercancel', enableDrag);
+        volumeSlider.addEventListener('pointerleave', enableDrag);
+    }
+
     setupDragAndDrop(card);
     return card;
 }
