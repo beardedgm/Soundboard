@@ -221,9 +221,10 @@ function createSoundCard(soundId, name, audio, tabId) {
     const card = document.createElement('div');
     card.className = 'sound-card';
     card.dataset.soundId = soundId;
-    
+
     card.innerHTML = `
         <button class="remove-sound" onclick="removeSound('${soundId}', ${tabId})">×</button>
+        <button class="rename-sound" onclick="startRenameSound('${soundId}', ${tabId})" title="Rename">✎</button>
         <div class="sound-header">
             <div class="sound-title" title="${name}">${name}</div>
             <div class="sound-status" id="status-${soundId}"></div>
@@ -250,7 +251,9 @@ function createSoundCard(soundId, name, audio, tabId) {
             <div class="progress-bar" id="progress-${soundId}"></div>
         </div>
     `;
-    
+    const titleEl = card.querySelector('.sound-title');
+    titleEl.ondblclick = () => startRenameSound(soundId, tabId);
+
     return card;
 }
 
@@ -334,6 +337,51 @@ function skipBack(soundId, seconds) {
     if (audio) {
         audio.currentTime = Math.max(0, audio.currentTime - seconds);
     }
+}
+
+function startRenameSound(soundId, tabId) {
+    const tab = tabData.get(tabId);
+    const sound = tab.sounds.get(soundId);
+    if (!sound) return;
+
+    const card = sound.element;
+    const titleEl = card.querySelector('.sound-title');
+    if (!titleEl || card.querySelector('.sound-title-input')) return;
+
+    const oldName = sound.name;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = oldName;
+    input.className = 'sound-title-input';
+
+    const finish = (save) => {
+        let name = oldName;
+        if (save) {
+            const val = input.value.trim();
+            if (val) name = val;
+        }
+        const newTitle = document.createElement('div');
+        newTitle.className = 'sound-title';
+        newTitle.textContent = name;
+        newTitle.title = name;
+        newTitle.ondblclick = () => startRenameSound(soundId, tabId);
+        input.replaceWith(newTitle);
+        sound.name = name;
+        saveState();
+    };
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            finish(true);
+        } else if (e.key === 'Escape') {
+            finish(false);
+        }
+    });
+    input.addEventListener('blur', () => finish(true));
+
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
 }
 
 function removeSound(soundId, tabId) {
