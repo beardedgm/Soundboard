@@ -14,4 +14,6 @@ Open `public/index.html` in any modern web browser. No additional setup is requi
 - Loop a track or jump back 5, 15, or 20 seconds.
 - Visual indicator showing whether a track is playing, paused, or stopped.
 - Loop button now displays "Loop: On" when looping and is highlighted.
+- Sounds are stored in IndexedDB so large audio data is no longer kept in
+  `localStorage`.
 
